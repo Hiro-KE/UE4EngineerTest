@@ -44,8 +44,9 @@ void AAIReverie_Robot::RotateRobot(const TEnumAsByte<EDirection> Direction, cons
 	UKismetMathLibrary::MapRangeClamped(UKismetMathLibrary::RandomFloat(), 0.f, 1.f, 5.f, 25.f);
 }
 
-TEnumAsByte<EDirection> AAIReverie_Robot::PickBestDirection(const float Degree, const float MaxRange /*= 25.f*/) const 
+TEnumAsByte<EDirection> AAIReverie_Robot::PickBestDirection(const float Degree, const float MaxRange /*= 25.f*/) const
 {
+	//getworlRo
 	return EDirection::Right;
 }
 
