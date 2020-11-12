@@ -14,7 +14,6 @@ AAIReverie_Robot::AAIReverie_Robot()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	bGroundCheck = false;
 	bDisplayDebug = false;
 }
 
@@ -25,6 +24,13 @@ void AAIReverie_Robot::BeginPlay()
 	LastLocation = GetActorLocation();
 	MotionDelegate.BindUFunction(this, FName("ProcessMotion"), bDisplayDebug);
 	GetWorld()->GetTimerManager().SetTimer(MotionTimer, MotionDelegate, TimerRate, true);
+}
+
+void AAIReverie_Robot::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearAllTimersForObject(this);
+	
 }
 
 // Called every frame
@@ -43,21 +49,6 @@ void AAIReverie_Robot::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void AAIReverie_Robot::MoveRobot(const float Units /*= 10.f*/, const bool bDebug /*= false*/)
 {
 	FVector TargetLocation = GetActorForwardVector() * Units + GetActorLocation();
-
-	if (bGroundCheck) {
-		if (UWorld* World = GetWorld()) {
-			FHitResult OutHit;
-			FCollisionQueryParams CollisionParams;
-			CollisionParams.AddIgnoredActor(this);
-			if (World->LineTraceSingleByChannel(OutHit, TargetLocation, TargetLocation + (GetActorUpVector() * (-500.f)), ECC_Visibility, CollisionParams)) {
-				if (bDebug) DrawDebugLine(GetWorld(), TargetLocation, TargetLocation + (GetActorUpVector() * (-500.f)), FColor::Green, false, 1, 0, 1);
-				if (OutHit.bBlockingHit && OutHit.Component->ComponentHasTag("Ground")) {
-					TargetLocation = OutHit.ImpactPoint + UnitsAboveGround;
-				}
-			}
-		}
-	}
-
 	SetActorLocation(TargetLocation, true);
 }
 
@@ -98,7 +89,6 @@ float AAIReverie_Robot::GetTracedDistance(const FVector RotationVector, const fl
 }
 
 
-
 void AAIReverie_Robot::ProcessMotion(const bool bDebug /*= false*/)
 {
 	// Move the robot if there is nothing in front of it
@@ -135,17 +125,30 @@ void AAIReverie_Robot::ProcessScene()
 	TArray<AActor*> SeenActors;
 	FString SeenActorsNames;
 	UAIReverieBlueprintLibrary::GetSeenActors(this, SeenActors, 0.0f);
-	for (AActor* TempActor : SeenActors) {
-		SeenActorsNames = SeenActorsNames + TempActor->GetName();
-		if (TempActor != SeenActors.Last()) SeenActorsNames += "\n";
+	for (AActor* TempActor : SeenActors) 
+	{
+		if (!TempActor->ActorHasTag(IgnoredActorsTag))
+		{
+			SeenActorsNames = SeenActorsNames + TempActor->GetName();
+			if (TempActor != SeenActors.Last()) SeenActorsNames += "\n";
+		}
 	}
 	// Save the name list
 	FFileHelper::SaveStringToFile(SeenActorsNames, *FString(SavedPath + "Data/image_" + FString::FromInt(Iteration) + "_actors.txt"), FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
-	// Proceed to the next iteration
+	if (bDisplayDebug) UE_LOG(LogAIReverie_Challenge, Log, TEXT("Scene has been processed, saved image and actors list number %d at Project/Saved/Data/"), Iteration);
+	// Increase the iteration for the next call
 	Iteration++;
+	OnProcessScene();
+}
+
+void AAIReverie_Robot::OnProcessScene()
+{
+	OnProcessScene_BP();
 }
 
 void AAIReverie_Robot::OnProcessMotion()
 {
-	ProcessScene();
+	// In order to avoid having a blurry image, make a capture after the Robot has fully stopped
+	GetWorld()->GetTimerManager().SetTimer(CaptureTimer, this, &AAIReverie_Robot::ProcessScene, 0.01f, false, TimerRate / 2);
+	OnProcessMotion_BP();
 }
