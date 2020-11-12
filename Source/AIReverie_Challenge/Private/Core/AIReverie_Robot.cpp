@@ -148,7 +148,7 @@ void AAIReverie_Robot::OnProcessScene()
 
 void AAIReverie_Robot::OnProcessMotion()
 {
-	// In order to avoid having a blurry image, make a capture after the Robot has fully stopped
+	// In order to avoid having a blurry image, make a capture after the Robot has fully stopped and before moving again.
 	GetWorld()->GetTimerManager().SetTimer(CaptureTimer, this, &AAIReverie_Robot::ProcessScene, 0.01f, false, TimerRate / 2);
 	OnProcessMotion_BP();
 }
