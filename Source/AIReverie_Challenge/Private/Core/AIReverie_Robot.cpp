@@ -99,12 +99,13 @@ void AAIReverie_Robot::ProcessMotion(const bool bDebug /*= false*/)
 	else {
 		// Pick a random Degree between 5 and 25
 		float Degree = UKismetMathLibrary::MapRangeClamped(UKismetMathLibrary::RandomFloat(), 0.f, 1.f, 5.f, 25.f);
-		// Check if the robot has moved at least twice since the last check
+		// Check if the robot has moved at least three times since the last check
 		if (UKismetMathLibrary::Vector_Distance(GetActorLocation(), LastLocation) > (UnitsToMove * 3)) {
 			// Picks the best direction depending on the distance to the upcoming object from both sides
 			TEnumAsByte <EDirection> Direction = PickBestDirection(Degree, HitDistance * 2, bDebug);
 			// Rotate the robot to the Direction and degree
 			RotateRobot(Direction, Degree);
+			// Cache the location and direction for the next motion iteration
 			LastLocation = GetActorLocation();
 			LastDirection = Direction;
 		}
