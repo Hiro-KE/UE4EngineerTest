@@ -32,6 +32,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "AIReverie|Motion")
 	uint8 bDisplayDebug : 1 ;
 
+	uint32 Iteration = 1;
 	/** Units above the floor that represent the position of the robot comparing to the floor.*/
 	float UnitsAboveGround = 10.f;
 	/** Ticking this will make sure that the robot will always be on the surface of the ground by the units above the floor. Useful when the ground is not planar.*/
@@ -78,6 +79,9 @@ public:
 	TEnumAsByte<EDirection> PickBestDirection(const float Degree, const float MaxRange = 25.f, const bool bDebug = false) const;
 	UFUNCTION(BlueprintCallable, Category = "AiReverie|Motion")
 	void ProcessMotion(const bool bDebug = false);
+	UFUNCTION(BlueprintCallable, Category = "AiReverie|Motion")
+	void ProcessScene();
+	virtual void OnProcessMotion();
 	/**
 	 * Returns the distance to the closest actor in range with a given rotation to look at from the current (Robot) actor. 
 	 * In case there is no actor in range, returns -1 as distance.

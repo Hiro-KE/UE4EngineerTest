@@ -3,9 +3,11 @@
 
 #include "Core/AIReverie_Robot.h"
 #include "AIReverie_Challenge/AIReverie_Challenge.h"
+#include "FunctionLibrary/AIReverieBlueprintLibrary.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Misc/FileHelper.h"
 
 // Sets default values
 AAIReverie_Robot::AAIReverie_Robot()
@@ -21,7 +23,6 @@ void AAIReverie_Robot::BeginPlay()
 {
 	Super::BeginPlay();
 	LastLocation = GetActorLocation();
-
 	MotionDelegate.BindUFunction(this, FName("ProcessMotion"), bDisplayDebug);
 	GetWorld()->GetTimerManager().SetTimer(MotionTimer, MotionDelegate, TimerRate, true);
 }
@@ -30,7 +31,6 @@ void AAIReverie_Robot::BeginPlay()
 void AAIReverie_Robot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -104,9 +104,8 @@ void AAIReverie_Robot::ProcessMotion(const bool bDebug /*= false*/)
 	// Move the robot if there is nothing in front of it
 	float ForwardDistance = GetTracedDistance(GetActorForwardVector(), HitDistance + 1, bDebug);
 	//UE_LOG(LogAIReverie_Challenge, Log, TEXT("Forward distance to the next actor is : %f"), ForwardDistance);
-	if (ForwardDistance > HitDistance || ForwardDistance == -1.f) {
+	if (ForwardDistance > HitDistance || ForwardDistance == -1.f)
 		MoveRobot(UnitsToMove, bDebug);
-	}
 	else {
 		// Pick a random Degree between 5 and 25
 		float Degree = UKismetMathLibrary::MapRangeClamped(UKismetMathLibrary::RandomFloat(), 0.f, 1.f, 5.f, 25.f);
@@ -124,4 +123,29 @@ void AAIReverie_Robot::ProcessMotion(const bool bDebug /*= false*/)
 			LastLocation = GetActorLocation();
 		}
 	}
+	OnProcessMotion();
+}
+
+void AAIReverie_Robot::ProcessScene()
+{
+	FString SavedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir());
+	// Take Screenshot
+	FScreenshotRequest::RequestScreenshot(FString(SavedPath + "Data/image_" + FString::FromInt(Iteration) + ".png"), false, false);
+	// Get all the rendered actors names
+	TArray<AActor*> SeenActors;
+	FString SeenActorsNames;
+	UAIReverieBlueprintLibrary::GetSeenActors(this, SeenActors, 0.0f);
+	for (AActor* TempActor : SeenActors) {
+		SeenActorsNames = SeenActorsNames + TempActor->GetName();
+		if (TempActor != SeenActors.Last()) SeenActorsNames += "\n";
+	}
+	// Save the name list
+	FFileHelper::SaveStringToFile(SeenActorsNames, *FString(SavedPath + "Data/image_" + FString::FromInt(Iteration) + "_actors.txt"), FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get());
+	// Proceed to the next iteration
+	Iteration++;
+}
+
+void AAIReverie_Robot::OnProcessMotion()
+{
+	ProcessScene();
 }
